@@ -1,0 +1,94 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+import os
+import sys
+import socket 
+import smtplib
+import sqlite3
+from email.mime.text import MIMEText
+from email.utils import formataddr
+ 
+# Author: Chen
+# 获取IPV6地址，要获取IPV4地址将2409::0000替换成8.8.8.8，AF_INET6变成AF_INET4
+# 或者直接查自己网卡获取IP
+def get_host_ipv6():
+    try:
+        s = socket.socket(socket.AF_INET6,socket.SOCK_DGRAM)
+        s.connect(('2409::0000',80))
+        ipv6 = s.getsockname()[0]
+    finally:
+        s.close()
+    return ipv6
+
+def send_email( my_email_accounts,      # 邮箱昵称、账户
+                my_email_password,                # 邮箱密码
+                send_email_accounts,              # 发送昵称、地址
+                email_subject,                          # 邮箱标题
+                email_message                        # 邮箱内容
+                ):    
+    try:
+        # 邮件内容、plain（纯文本）/ html（超文本）、编码格式
+        # 括号里的对应发件人邮箱昵称、发件人邮箱账号
+        # 括号里的对应收件人邮箱昵称、收件人邮箱账号
+        # 邮件的主题，也可以说是标题
+        # 发件人邮箱中的SMTP服务器，端口是25
+        # 括号中对应的是发件人邮箱账号、邮箱密码
+        # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
+        msg=MIMEText(email_message,'plain','utf-8')         
+        msg['From']=formataddr(my_email_accounts)             
+        msg['To']=formataddr(send_email_accounts)             
+        msg['Subject']=email_subject                      
+        server=smtplib.SMTP_SSL("smtp.163.com", 465)          
+        server.login(my_email_accounts[1], my_email_password)                                                               
+        server.sendmail(my_email_accounts[1],send_email_accounts,msg.as_string())  
+        server.quit()                # 关闭连接
+        return ['success',0]
+    except Exception as e:    
+        print(e)
+        return ['failed', e]
+
+def main():
+    # my_email_accounts   发件人昵称、邮箱账号
+    # my_email_password   发件人邮箱密码
+    # send_email_accounts 收件人昵称、邮箱账号
+    # email_subject       邮件的主题，也可以说是标题
+    # email_message       邮件内容
+    my_email_accounts = ['123','123@163.com']   
+    my_email_password = '123'                    
+    send_email_accounts = ['123','123@qq.com']      
+    email_subject = '临时ipv6变化通知'     
+    file_path = "D:\python\\getip\\ipv6.txt"  #将获取的IP地址临时放在一个文本文件里  
+    email_message=get_host_ipv6()
+    if os.path.isfile(file_path):
+        file = open(file_path, 'r')
+        info = file.readline()
+        if info == email_message:
+            print("now ipv6 is:" + email_message)
+        else:
+            file.close()
+            file = open(file_path, 'w')
+            file.write(email_message)
+            get_result = send_email( 
+                                    my_email_accounts,
+                                    my_email_password,
+                                    send_email_accounts,
+                                    email_subject,
+                                    email_message)
+            print(get_result)
+        file.close()
+
+    else:
+        file = open(file_path, 'w')                        
+        file.write(email_message) 
+        file.close() 
+        get_result = send_email( 
+                        my_email_accounts,
+                        my_email_password,
+                        send_email_accounts,
+                        email_subject,
+                        email_message)
+        print(get_result)
+
+if __name__ == "__main__":
+    main()
+
